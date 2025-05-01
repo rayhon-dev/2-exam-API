@@ -1,7 +1,6 @@
 from rest_framework import serializers
-from django.contrib.auth import get_user_model
+from .models import User
 
-User = get_user_model()
 
 class RegisterSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
@@ -17,3 +16,20 @@ class RegisterSerializer(serializers.Serializer):
     def create(self, validation_data):
         return User.objects.create_user(**validation_data)
 
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+            'is_teacher',
+            'bio',
+            'profile_picture',
+            'date_joined',
+        ]
+        read_only_fields = ('id', 'username', 'email', 'is_teacher', 'date_joined')

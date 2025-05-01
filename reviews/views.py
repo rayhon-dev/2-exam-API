@@ -6,12 +6,17 @@ from .serializers import ReviewSerializer
 from .pagination import ReviewPagination
 from rest_framework.permissions import AllowAny
 from core.permissions import IsReviewOwner, IsReviewOwnerOrAdmin, IsEnrolledAndCompleted, IsOwnerOrAdmin
-
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import OrderingFilter, SearchFilter
 
 class ReviewViewSet(ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
     pagination_class = ReviewPagination
+    filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
+    filterset_fields = ['course', 'user', 'rating', 'created_at']
+    ordering_fields = ['created_at', 'rating']
+    search_fields = ['comment']
 
     def get_permissions(self):
         if self.action == 'create':
@@ -25,6 +30,7 @@ class ReviewViewSet(ModelViewSet):
         elif self.action == 'user_reviews':
             return [IsOwnerOrAdmin()]
         return [AllowAny()]
+
 
     @action(detail=False, methods=['get'], url_path='course/(?P<course_id>[^/.]+)', name='course_reviews')
     def course_reviews(self, request, course_id=None):

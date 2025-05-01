@@ -2,6 +2,8 @@ from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import OrderingFilter, SearchFilter
 from .pagination import EnrollmentPagination, ProgressPagination
 from .serializers import EnrollmentSerializer, ProgressSerializer
 from .models import Enrollment, Progress
@@ -20,6 +22,10 @@ class EnrollmentViewSet(ModelViewSet):
     queryset = Enrollment.objects.all()
     serializer_class = EnrollmentSerializer
     pagination_class = EnrollmentPagination
+    filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
+    filterset_fields = ['user', 'course', 'status', 'created_at']
+    ordering_fields = ['created_at']
+    search_fields = ['course__title', 'user__username']
 
     def get_permissions(self):
         if self.action in ['retrieve', 'update']:
@@ -54,6 +60,10 @@ class ProgressViewSet(ModelViewSet):
     queryset = Progress.objects.all()
     serializer_class = ProgressSerializer
     pagination_class = ProgressPagination
+    filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
+    filterset_fields = ['enrollment', 'lesson', 'is_completed', 'updated_at']
+    ordering_fields = ['updated_at', 'created_at']
+    search_fields = ['lesson__title', 'enrollment__user__username']
 
 
     def get_permissions(self):
