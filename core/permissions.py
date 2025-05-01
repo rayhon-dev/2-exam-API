@@ -10,7 +10,7 @@ class IsCourseTeacherOrAdmin(BasePermission):
         if request.user.is_staff or request.user.is_superuser:
             return True
 
-        return obj.teacher == request.user
+        return obj.course.teacher == request.user
 
 
 
@@ -18,16 +18,17 @@ class IsTeacher(BasePermission):
     def has_permission(self, request, view):
         if request.method == 'POST':
             return request.user.is_authenticated and request.user.is_teacher
-
         return True
 
     def has_object_permission(self, request, view, obj):
         if request.method in SAFE_METHODS:
             return True
 
-        return obj.teacher == request.user
+        teacher = getattr(obj, 'teacher', None)
+        if teacher is None and hasattr(obj, 'course'):
+            teacher = getattr(obj.course, 'teacher', None)
 
-
+        return teacher == request.user
 
 
 class IsEnrolledOrTeacherOrAdmin(BasePermission):

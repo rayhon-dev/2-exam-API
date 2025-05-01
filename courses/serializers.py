@@ -41,7 +41,8 @@ class LessonSerializer(serializers.ModelSerializer):
 
 
 class ModuleSerializer(serializers.ModelSerializer):
-    course = serializers.SerializerMethodField(read_only=True)
+    course = serializers.PrimaryKeyRelatedField(queryset=Course.objects.all(), write_only=True)
+    course_info = serializers.SerializerMethodField(read_only=True)
     lessons = LessonSerializer(many=True)
 
     class Meta:
@@ -51,21 +52,43 @@ class ModuleSerializer(serializers.ModelSerializer):
             'title',
             'description',
             'order',
-            'course',
+            'course',  # for input (write_only)
+            'course_info',  # for output (read_only)
             'created_at',
             'lessons'
         ]
+        read_only_fields = ['id', 'created_at']
 
-        extra_kwargs = {
-            'id': {'read_only': True},
-            'created_at': {'read_only': True}
-        }
-
-    def get_course(self, obj):
+    def get_course_info(self, obj):
         return {
             'id': obj.course.id,
             'title': obj.course.title
         }
+
+    def create(self, validated_data):
+        lessons_data = validated_data.pop('lessons')
+        course = validated_data.pop('course')
+        module = Module.objects.create(course=course, **validated_data)
+
+        for lesson_data in lessons_data:
+            Lesson.objects.create(module=module, **lesson_data)
+
+        return module
+
+    def update(self, instance, validated_data):
+        lessons_data = validated_data.pop('lessons', None)
+        instance.title = validated_data.get('title', instance.title)
+        instance.description = validated_data.get('description', instance.description)
+        instance.order = validated_data.get('order', instance.order)
+        instance.save()
+
+        if lessons_data is not None:
+            instance.lessons.all().delete()  # eski lessonlar o‘chadi
+            for lesson_data in lessons_data:
+                Lesson.objects.create(module=instance, **lesson_data)
+
+        return instance
+
 
 class CourseSerializer(serializers.ModelSerializer):
     modules = ModuleSerializer(many=True)
@@ -100,10 +123,31 @@ class CourseSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         modules_data = validated_data.pop('modules')
+        validated_data['teacher'] = self.context['request'].user
+
         course = Course.objects.create(**validated_data)
+
         for module_data in modules_data:
             lessons_data = module_data.pop('lessons')
             module = Module.objects.create(course=course, **module_data)
             for lesson_data in lessons_data:
                 Lesson.objects.create(module=module, **lesson_data)
+
         return course
+
+    def update(self, instance, validated_data):
+        modules_data = validated_data.pop('modules', [])
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        instance.modules.all().delete()
+
+        for module_data in modules_data:
+            lessons_data = module_data.pop('lessons', [])
+            module = Module.objects.create(course=instance, **module_data)
+            for lesson_data in lessons_data:
+                Lesson.objects.create(module=module, **lesson_data)
+
+        return instance

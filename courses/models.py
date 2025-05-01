@@ -23,7 +23,7 @@ class Course(BaseModel):
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='courses')
     price = models.DecimalField(max_digits=8, decimal_places=2)
     discount_price = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
-    image = models.ImageField(upload_to='course_images/')
+    image = models.ImageField(upload_to='courses/', blank=True, null=True)
     is_published = models.BooleanField(default=False)
 
     def __str__(self):
